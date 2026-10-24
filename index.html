@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="th" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Foldable Banking Concept — iPhone Duo</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class'}</script>
+<link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root{--navy:#0b1b3a;--orange:#ff7a1a;--bg1:#eef2f9;--bg2:#dfe6f3;--txt:#0b1b3a}
+  .dark{--bg1:#050a17;--bg2:#0d1730;--txt:#e6ecff}
+  *{font-family:'Prompt',sans-serif;scrollbar-width:none}
+  *::-webkit-scrollbar{display:none}
+  html,body{height:100%;overflow:hidden}
+  :root{--hud:#ff7a1a}
+  #dots button{width:8px;height:8px;border-radius:9px;background:rgba(148,163,184,.45);transition:all .4s}
+  #dots button.on{width:26px;background:var(--hud)}
+  .content,#imgR,#imgL{transition:opacity .35s ease,filter .35s ease}
+  .swapping .content,.swapping #imgR,.swapping #imgL{opacity:0;filter:blur(6px)}
+  body{background:radial-gradient(1200px 700px at 30% 10%,var(--bg2),var(--bg1));color:var(--txt);min-height:100vh}
+  .glass{background:rgba(255,255,255,.08);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid rgba(255,255,255,.14)}
+  html:not(.dark) .glass{background:rgba(255,255,255,.65);border-color:rgba(11,27,58,.08)}
+
+  /* ===== Stage & device ===== */
+  .stage{perspective:2000px;perspective-origin:50% 45%;position:fixed;inset:0;display:flex;align-items:center;justify-content:center;cursor:grab;touch-action:none;user-select:none}
+  .stage.dragging{cursor:grabbing}
+  .scaler{transform-origin:center center;transition:transform .5s;transform-style:preserve-3d}
+  .orbit{transform-style:preserve-3d;transition:transform .9s cubic-bezier(.2,.8,.2,1)}
+  .orbit.live{transition:none}
+  .device{position:relative;width:760px;height:760px;transform-style:preserve-3d;transition:transform 1s cubic-bezier(.7,0,.2,1)}
+  .panel{position:absolute;top:0;width:376px;height:760px;border-radius:44px;transform-style:preserve-3d;
+         transition:transform 1s cubic-bezier(.7,0,.2,1)}
+  .panel .frame{position:absolute;inset:0;border-radius:44px;background:#111;padding:10px;transform:translateZ(5px);backface-visibility:hidden;-webkit-backface-visibility:hidden;
+         box-shadow:inset 0 0 0 2px #3a3a3a,inset 0 0 0 4px #0c0c0c;cursor:default}
+  .screen{position:relative;width:100%;height:100%;border-radius:36px;overflow:hidden;background:#f5f7fb}
+  .dark .screen{background:#0a1226}
+  .glare{position:absolute;inset:0;border-radius:36px;pointer-events:none;z-index:40;mix-blend-mode:screen;
+         background:linear-gradient(var(--ga,115deg),rgba(255,255,255,.0) 35%,rgba(255,255,255,.16) 48%,rgba(255,255,255,0) 60%)}
+  /* back plate + edges = thickness */
+  .back{position:absolute;inset:0;border-radius:44px;backface-visibility:hidden;-webkit-backface-visibility:hidden;transform:translateZ(-5px) rotateY(180deg);
+        background:linear-gradient(135deg,#d9dde6 0%,#a9b0bf 45%,#e8ebf1 55%,#9aa2b3 100%);box-shadow:inset 0 0 0 3px rgba(0,0,0,.15)}
+  .dark .back{background:linear-gradient(135deg,#2b3242 0%,#151a24 45%,#3a4255 55%,#121620 100%)}
+  .edge{position:absolute;background:linear-gradient(90deg,#6b7280,#d1d5db,#6b7280)}
+  .dark .edge{background:linear-gradient(90deg,#1f2430,#5b6478,#1f2430)}
+  .edge.l,.edge.r{width:10px;top:40px;height:680px;transform:rotateY(90deg)}
+  .edge.l{left:-5px}.edge.r{left:371px}
+  .edge.t,.edge.b{height:10px;left:40px;width:296px;transform:rotateX(90deg);background:linear-gradient(180deg,#6b7280,#d1d5db,#6b7280)}
+  .dark .edge.t,.dark .edge.b{background:linear-gradient(180deg,#1f2430,#5b6478,#1f2430)}
+  .edge.t{top:-5px}.edge.b{top:755px}
+  .btn-side{position:absolute;width:12px;border-radius:4px;background:#8a93a6;transform:rotateY(90deg)}
+  .camera{position:absolute;top:26px;left:22px;width:120px;height:120px;border-radius:30px;background:rgba(0,0,0,.25);box-shadow:inset 0 0 0 2px rgba(255,255,255,.15)}
+  .lens{position:absolute;width:44px;height:44px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#4b5d8a,#0a0f1c 60%);box-shadow:0 0 0 4px #2a2f3a}
+  .logo{position:absolute;bottom:90px;left:50%;transform:translateX(-50%);font-weight:700;letter-spacing:.3em;font-size:13px;opacity:.5;color:#0b1b3a}
+  .dark .logo{color:#cbd5e1}
+  .panel.right{left:384px;transform-origin:-4px center}
+  .panel.left {left:0;transform-origin:380px center}
+  .hinge{position:absolute;left:374px;top:24px;width:12px;height:712px;border-radius:8px;transform:translateZ(0);
+         background:linear-gradient(90deg,#1b1b1b,#6b6b6b 50%,#1b1b1b);transition:opacity .6s}
+  .floor{position:absolute;left:50%;top:50%;width:900px;height:900px;margin:-450px 0 0 -450px;pointer-events:none;
+         transform:rotateX(90deg) translateZ(-430px);background:radial-gradient(closest-side,rgba(0,0,0,.55),rgba(0,0,0,0));transition:opacity .6s}
+  html:not(.dark) .floor{background:radial-gradient(closest-side,rgba(11,27,58,.28),rgba(11,27,58,0))}
+  .view-btn{font-size:12px}
+
+  /* postures */
+  .device.closed .panel.left{transform:rotateY(-180deg) translateZ(14px)}
+  .device.closed{transform:translateX(-192px)}
+  .device.closed .hinge{opacity:0}
+  .device.open{transform:none}
+  .device.portrait{transform:rotateZ(-90deg) scale(.9)}
+  .device.seated{transform:rotateZ(-90deg) rotateY(-12deg) scale(.85)}
+  .device.seated .panel.left{transform:rotateY(70deg)}
+  .device.standing{transform:rotateX(8deg) scale(.82)}
+  .device.standing .panel.left{transform:rotateY(-55deg)}
+  .device.standing .panel.right{transform:rotateY(55deg)}
+
+  /* content counter-rotation for portrait/seated so UI stays upright */
+  .content{position:absolute;inset:0;transition:transform 1s cubic-bezier(.7,0,.2,1)}
+
+  .island{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:110px;height:30px;border-radius:20px;background:#000;z-index:30}
+  .statusbar{height:46px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 26px 4px;font-size:12px;font-weight:600}
+  .nav-item{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:9px;padding:8px 0;border-radius:14px;cursor:pointer;transition:.2s;color:#7b8bb0}
+  .nav-item.active{background:var(--orange);color:#fff;box-shadow:0 6px 16px rgba(255,122,26,.45)}
+  .nav-item svg{width:20px;height:20px}
+  .scroll-y{overflow-y:auto;scrollbar-width:none}.scroll-y::-webkit-scrollbar{display:none}
+  .fade-in{animation:fade .6s ease both}@keyframes fade{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
+  .posture-btn.active{background:var(--orange);color:#fff;border-color:transparent}
+</style>
+</head>
+<body>
+
+<!-- ===== Top bar ===== -->
+<header class="fixed top-0 inset-x-0 z-30 px-4 md:px-8 pt-4 flex items-start justify-between gap-3 pointer-events-none">
+  <div class="pointer-events-auto">
+    <p class="text-[10px] md:text-xs tracking-widest font-semibold" style="color:var(--hud)">BUGpairoj SHOWCASE · FOLDABLE 3D</p>
+    <h1 class="text-xl md:text-3xl font-bold leading-tight"><span id="projTitle">AURA Bank</span> <span class="opacity-50 font-light">— iPhone Duo</span></h1>
+    <p class="text-xs md:text-sm opacity-70" id="projDesc">Vertical Nav · Context Sync</p>
+  </div>
+  <div class="flex gap-2 pointer-events-auto">
+    <button id="themeBtn" class="glass rounded-full px-3 py-2 text-sm flex items-center gap-2"><span id="themeIcon">🌙</span><span id="themeTxt" class="hidden sm:inline">Dark</span></button>
+    <button id="fsBtn" class="glass rounded-full px-3 py-2 text-sm" title="เต็มจอ">⛶</button>
+  </div>
+</header>
+
+<!-- ===== Control dock (toggle) ===== -->
+<div id="dock" class="fixed left-1/2 -translate-x-1/2 bottom-[92px] z-30 w-[min(96vw,980px)] hidden">
+ <div class="glass rounded-2xl p-3 space-y-2 shadow-2xl">
+<!-- ===== Posture controls ===== -->
+<div class="flex flex-wrap gap-2 justify-center">
+  <button class="posture-btn glass rounded-xl px-4 py-2 text-sm" data-p="closed">📱 Closed</button>
+  <button class="posture-btn glass rounded-xl px-4 py-2 text-sm active" data-p="open">📖 Open (Landscape)</button>
+  <button class="posture-btn glass rounded-xl px-4 py-2 text-sm" data-p="portrait">↕️ Open (Portrait)</button>
+  <button class="posture-btn glass rounded-xl px-4 py-2 text-sm" data-p="seated">💻 Seated</button>
+  <button class="posture-btn glass rounded-xl px-4 py-2 text-sm" data-p="standing">⛺ Standing</button>
+  <button id="autoBtn" class="glass rounded-xl px-4 py-2 text-sm">▶ Auto Fold/Unfold</button>
+</div>
+<div class="flex flex-wrap gap-2 justify-center items-center">
+  <span class="text-xs opacity-60">มุมกล้อง 3D:</span>
+  <button class="view-btn glass rounded-lg px-3 py-1" data-v="0,0">ด้านหน้า</button>
+  <button class="view-btn glass rounded-lg px-3 py-1" data-v="-14,-28">Iso ซ้าย</button>
+  <button class="view-btn glass rounded-lg px-3 py-1" data-v="-14,28">Iso ขวา</button>
+  <button class="view-btn glass rounded-lg px-3 py-1" data-v="-58,0">มุมบน</button>
+  <button class="view-btn glass rounded-lg px-3 py-1" data-v="-8,180">ด้านหลัง</button>
+  <button id="spinBtn" class="view-btn glass rounded-lg px-3 py-1">🔄 หมุนรอบตัว</button>
+  <span class="text-xs opacity-50 hidden md:inline">· ลากเมาส์/นิ้ว (นอกจอ) เพื่อหมุน · Scroll เพื่อซูม</span>
+</div>
+<div class="flex flex-wrap gap-2 justify-center items-center" id="projBar">
+  <span class="text-xs opacity-60">เปลี่ยนโปรเจกต์ในจอ:</span>
+</div>
+<div id="uploadBox" class="hidden ">
+  <div class="glass rounded-2xl p-4 grid sm:grid-cols-2 gap-3 text-sm">
+    <label class="block"><span class="text-xs opacity-70">🖼️ รูปจอหลัก (ขวา / หน้าจอตอนพับ)</span>
+      <input type="file" accept="image/*" id="upR" class="block w-full mt-1 text-xs file:mr-3 file:rounded-lg file:border-0 file:bg-orange-500 file:text-white file:px-3 file:py-1.5"></label>
+    <label class="block"><span class="text-xs opacity-70">🖼️ รูปจอฝั่งซ้าย (ตอนกาง)</span>
+      <input type="file" accept="image/*" id="upL" class="block w-full mt-1 text-xs file:mr-3 file:rounded-lg file:border-0 file:bg-orange-500 file:text-white file:px-3 file:py-1.5"></label>
+    <p class="sm:col-span-2 text-[11px] opacity-60">แนะนำ screenshot แนวตั้งสัดส่วน ~9:19.5 (เช่น 1179×2556) · รูปอยู่ในเบราว์เซอร์เท่านั้น ไม่ถูกอัปโหลดไปที่ไหน</p>
+  </div>
+</div>
+
+
+ </div>
+</div>
+
+<!-- ===== HUD (showreel) ===== -->
+<div id="hud" class="fixed bottom-0 inset-x-0 z-30 px-4 pb-3 flex flex-col items-center gap-2">
+  <div class="glass rounded-2xl px-3 py-2 flex items-center gap-2 shadow-xl">
+    <button id="prevBtn" class="w-8 h-8 rounded-full hover:bg-white/10" title="ก่อนหน้า">⏮</button>
+    <button id="playBtn" class="w-9 h-9 rounded-full text-white" style="background:var(--hud)" title="เล่น/หยุด">⏸</button>
+    <button id="nextBtn" class="w-8 h-8 rounded-full hover:bg-white/10" title="ถัดไป">⏭</button>
+    <div id="dots" class="flex items-center gap-1.5 mx-2"></div>
+    <button id="dockBtn" class="w-8 h-8 rounded-full hover:bg-white/10" title="แผงควบคุม">⚙️</button>
+  </div>
+  <div class="w-[min(80vw,420px)] h-1 rounded-full bg-white/10 overflow-hidden"><div id="prog" class="h-full rounded-full" style="width:0;background:var(--hud)"></div></div>
+</div>
+
+<!-- ===== Stage ===== -->
+<main class="stage" id="stage">
+ <div class="scaler" id="scaler">
+ <div class="orbit" id="orbit">
+  <div class="floor"></div>
+  <div class="device open" id="device">
+
+    <!-- LEFT (expanded) PANEL -->
+    <div class="panel left">
+      <div class="back"><div class="camera">
+        <div class="lens" style="top:10px;left:10px"></div><div class="lens" style="top:62px;left:10px"></div>
+        <div class="lens" style="top:36px;left:64px;width:30px;height:30px"></div></div>
+        <div class="logo">AURA</div></div>
+      <div class="edge l"></div><div class="edge t"></div><div class="edge b"></div>
+      <div class="btn-side" style="left:-6px;top:150px;height:40px"></div>
+      <div class="btn-side" style="left:-6px;top:210px;height:70px"></div>
+      <div class="btn-side" style="left:-6px;top:290px;height:70px"></div>
+      <div class="frame"><div class="glare"></div><div class="screen">
+        <img id="imgL" class="absolute inset-0 w-full h-full object-cover z-20 hidden" alt="">
+        <div class="content" id="leftContent">
+          <div class="statusbar opacity-0">.</div>
+          <div class="px-5 pb-5 h-[calc(100%-46px)] scroll-y" id="leftBody">
+            <!-- filled by JS -->
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <div class="hinge"></div>
+
+    <!-- RIGHT (main / cover) PANEL -->
+    <div class="panel right">
+      <div class="back"><div class="logo">AURA</div></div>
+      <div class="edge r"></div><div class="edge t"></div><div class="edge b"></div>
+      <div class="btn-side" style="left:370px;top:220px;height:90px"></div>
+      <div class="frame"><div class="glare"></div><div class="screen">
+        <div class="island"></div>
+        <img id="imgR" class="absolute inset-0 w-full h-full object-cover z-20 hidden" alt="">
+        <div class="content">
+          <div class="statusbar"><span id="clock">09:41</span><span>5G ▮▮▮ 🔋</span></div>
+          <div class="flex h-[calc(100%-46px)]">
+            <!-- main content -->
+            <div class="flex-1 px-4 pb-4 scroll-y" id="rightBody"></div>
+            <!-- Vertical nav (thumb zone, right edge) -->
+            <nav class="w-[62px] flex flex-col justify-end gap-1 pr-2 pb-6" id="vnav"></nav>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+  </div>
+ </div>
+ </div>
+</main>
+
+
+
+<footer class="fixed right-3 bottom-2 z-20 text-[10px] opacity-60 hidden md:block">
+  Personal exploration concept — ข้อมูลทั้งหมดเป็นข้อมูลตัวอย่าง ·
+  <a href="https://www.youtube.com/c/BUGpairoj" target="_blank" rel="noopener" class="text-orange-500 font-semibold hover:underline">AI Pairoj — by BUGpairoj</a>
+</footer>
+
+<script>
+/* ================= Data ================= */
+const TH_MONTH=['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const beDate=(d)=>`${d.getDate()} ${TH_MONTH[d.getMonth()]} ${d.getFullYear()+543}`;
+const beTime=(d)=>d.toTimeString().slice(0,5);
+const fmt=n=>n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2});
+
+const accounts=[
+  {id:'sav',name:'ออมทรัพย์ AURA',no:'xxx-x-x4821-x',bal:128450.75,color:'from-[#0b1b3a] to-[#1d3a7a]',
+   flow:{in:[42,45,40,52,48,55],out:[31,38,29,41,36,33]},
+   cat:{'อาหาร':28,'เดินทาง':14,'ช้อปปิ้ง':22,'บิล/สาธารณูปโภค':18,'อื่นๆ':18}},
+  {id:'biz',name:'กระแสรายวัน ธุรกิจ',no:'xxx-x-x9037-x',bal:562300.00,color:'from-[#ff7a1a] to-[#c2410c]',
+   flow:{in:[180,210,195,240,225,260],out:[150,170,160,205,190,198]},
+   cat:{'ซัพพลายเออร์':45,'เงินเดือน':30,'ค่าเช่า':12,'ภาษี':8,'อื่นๆ':5}}
+];
+const txSeed={
+  sav:[['รับโอนจาก สมชาย ใจดี',5000],['สแกนจ่าย ร้านกาแฟ Brew Lab',-85],['ค่าไฟฟ้า กฟน.',-1240.5],['รับเงินเดือน',38000],['โอนไป ธ.อื่น',-2500],['เติมเงินมือถือ',-300],['ช้อปปิ้งออนไลน์',-1590],['ดอกเบี้ยเงินฝาก',12.4]],
+  biz:[['รับชำระ INV-2569-0142',85600],['จ่ายซัพพลายเออร์ ABC',-42300],['ค่าเช่าสำนักงาน',-25000],['รับชำระ INV-2569-0139',53250],['จ่ายเงินเดือนพนักงาน',-118000],['ภาษีหัก ณ ที่จ่าย',-3600],['ค่าโฆษณาออนไลน์',-8900]]
+};
+function buildTx(id){const now=new Date();return txSeed[id].map((t,i)=>{const d=new Date(now-(i*29+3)*3600e3);return{title:t[0],amt:t[1],d}})}
+
+let state={acc:0,tab:'home',proj:'bank'};
+const customImg={R:null,L:null};
+
+/* ================= Icons ================= */
+const I={
+ home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+ tx:'<path d="M7 7h13l-3-3M17 17H4l3 3"/>',
+ scan:'<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10"/>',
+ card:'<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M3 10h18"/>',
+ more:'<circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>',
+ ticket:'<path d="M4 7h16v3a2 2 0 0 0 0 4v3H4v-3a2 2 0 0 0 0-4z"/><path d="M10 7v10"/>',
+ users:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 3-5 6-5s6 2 6 5M16 5a3 3 0 0 1 0 6M21 20c0-2-1.4-3.6-3.4-4.4"/>',
+ clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+ chart:'<path d="M4 20V11M10 20V5M16 20v-6M2 20h20"/>',
+ plus:'<path d="M12 5v14M5 12h14"/>',
+ laptop:'<rect x="4" y="5" width="16" height="11" rx="1"/><path d="M2 19h20"/>',
+ doc:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/>'
+};
+const svg=p=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
+
+/* ================= Right panel ================= */
+function renderNav(){
+  const items=PROJECTS[state.proj].nav||[];
+  document.getElementById('vnav').style.display=items.length?'':'none';
+  document.getElementById('vnav').innerHTML=items.map(([k,l,ic])=>
+    `<div class="nav-item ${state.tab===k?'active':''}" data-tab="${k}">${svg(I[ic||k])}<span>${l}</span></div>`).join('');
+  document.querySelectorAll('.nav-item').forEach(n=>n.onclick=()=>{state.tab=n.dataset.tab;renderAll()});
+}
+function bankRight(){
+  const a=accounts[state.acc];
+  document.getElementById('rightBody').innerHTML=`
+   <div class="flex items-center justify-between mt-1 mb-3">
+     <div><p class="text-[11px] text-slate-400">สวัสดีตอนเช้า</p><p class="font-semibold text-slate-800 dark:text-white">คุณไพโรจน์</p></div>
+     <div class="w-9 h-9 rounded-full bg-gradient-to-br from-orange-400 to-orange-600 text-white grid place-items-center text-sm font-bold">P</div>
+   </div>
+   <div class="flex gap-2 mb-3">${accounts.map((x,i)=>`<button data-acc="${i}" class="acc-btn text-[11px] px-3 py-1 rounded-full ${i===state.acc?'bg-orange-500 text-white':'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300'}">${x.name.split(' ')[0]}</button>`).join('')}</div>
+   <div class="rounded-3xl p-4 text-white bg-gradient-to-br ${a.color} shadow-xl relative overflow-hidden" id="bookCard">
+     <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/10"></div>
+     <p class="text-xs opacity-80">${a.name}</p><p class="text-[11px] opacity-60">${a.no}</p>
+     <p class="text-[11px] mt-3 opacity-80">ยอดเงินที่ใช้ได้</p>
+     <p class="text-2xl font-bold tracking-tight">฿ ${fmt(a.bal)}</p>
+     <p class="text-[10px] mt-2 opacity-70">📖 แตะสมุดบัญชี หรือ <b>กางจอ</b> เพื่อดูรายการเดินบัญชี</p>
+   </div>
+   <div class="grid grid-cols-4 gap-2 mt-4">
+     ${[['💸','โอนเงิน'],['📷','สแกนจ่าย'],['📱','เติมเงิน'],['🧾','จ่ายบิล'],['🏦','ถอนไม่ใช้บัตร'],['📈','ลงทุน'],['🎁','สิทธิพิเศษ'],['⚙️','ตั้งค่า']]
+       .map(([e,t])=>`<div class="flex flex-col items-center gap-1"><div class="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 shadow grid place-items-center text-xl">${e}</div><span class="text-[10px] text-slate-600 dark:text-slate-300 text-center leading-tight">${t}</span></div>`).join('')}
+   </div>
+   <div class="mt-4 rounded-2xl p-3 bg-gradient-to-r from-[#0b1b3a] to-[#ff7a1a] text-white">
+     <p class="text-xs font-semibold">ฝากประจำ 12 เดือน 2.15%</p><p class="text-[10px] opacity-80">ถึง 31 ธ.ค. ${new Date().getFullYear()+543}</p>
+   </div>
+   <p class="text-xs font-semibold text-slate-700 dark:text-slate-200 mt-4 mb-2">รายการล่าสุด</p>
+   ${buildTx(a.id).slice(0,3).map(txRow).join('')}
+  `;
+  document.querySelectorAll('.acc-btn').forEach(b=>b.onclick=()=>{state.acc=+b.dataset.acc;renderAll()});
+  document.getElementById('bookCard').onclick=()=>setPosture('open');
+}
+function txRow(t){
+  const pos=t.amt>0;
+  return `<div class="flex items-center gap-3 py-2 border-b border-slate-200/60 dark:border-slate-700/50">
+    <div class="w-8 h-8 rounded-xl grid place-items-center text-sm ${pos?'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40':'bg-rose-100 text-rose-600 dark:bg-rose-900/40'}">${pos?'↓':'↑'}</div>
+    <div class="flex-1 min-w-0"><p class="text-[12px] truncate text-slate-800 dark:text-slate-100">${t.title}</p><p class="text-[10px] text-slate-400">${beDate(t.d)} · ${beTime(t.d)} น.</p></div>
+    <p class="text-[12px] font-semibold ${pos?'text-emerald-600':'text-rose-500'}">${pos?'+':''}${fmt(t.amt)}</p></div>`;
+}
+
+/* ================= Left panel (context sync) ================= */
+let flowChart,catChart;
+function bankLeft(){
+  const a=accounts[state.acc];const tx=buildTx(a.id);
+  const tin=tx.filter(t=>t.amt>0).reduce((s,t)=>s+t.amt,0), tout=tx.filter(t=>t.amt<0).reduce((s,t)=>s+t.amt,0);
+  const titles={home:'สมุดบัญชี & ภาพรวม',tx:'ประวัติธุรกรรม',scan:'ผู้รับเงินล่าสุด',card:'การใช้จ่ายตามหมวด',more:'ภาพรวมบัญชี'};
+  document.getElementById('leftBody').innerHTML=`
+   <div class="fade-in">
+    <p class="text-[10px] tracking-widest text-orange-500 font-semibold">SYNCED · ${a.name}</p>
+    <h2 class="text-lg font-bold text-slate-800 dark:text-white">${titles[state.tab]}</h2>
+    <div class="grid grid-cols-2 gap-2 mt-3">
+      <div class="rounded-2xl p-3 bg-emerald-50 dark:bg-emerald-900/30"><p class="text-[10px] text-emerald-700 dark:text-emerald-300">เงินเข้า (7 วัน)</p><p class="font-bold text-emerald-600">+${fmt(tin)}</p></div>
+      <div class="rounded-2xl p-3 bg-rose-50 dark:bg-rose-900/30"><p class="text-[10px] text-rose-700 dark:text-rose-300">เงินออก (7 วัน)</p><p class="font-bold text-rose-500">${fmt(tout)}</p></div>
+    </div>
+    <div class="rounded-2xl bg-white dark:bg-slate-900/70 shadow-sm p-3 mt-3">
+      <p class="text-xs font-semibold text-slate-700 dark:text-slate-200">เงินเข้า-ออก 6 เดือน (พันบาท)</p>
+      <div class="flex items-center justify-center h-[200px]">
+        <canvas id="serviceChart" class="max-w-full"></canvas>
+      </div>
+    </div>
+    ${state.tab==='card'||state.tab==='more'?`
+    <div class="rounded-2xl bg-white dark:bg-slate-900/70 shadow-sm p-3 mt-3">
+      <p class="text-xs font-semibold text-slate-700 dark:text-slate-200">สัดส่วนรายจ่าย</p>
+      <div class="flex items-center justify-center h-[220px]"><canvas id="catChart" class="max-w-full"></canvas></div>
+    </div>`:''}
+    <p class="text-xs font-semibold text-slate-700 dark:text-slate-200 mt-4 mb-1">รายการเดินบัญชี</p>
+    ${tx.map(txRow).join('')}
+   </div>`;
+  drawCharts(a);
+}
+function fixSize(c){if(!c)return;const w=c.parentElement.clientWidth,h=c.parentElement.clientHeight;c.width=w;c.height=h;c.style.width=w+'px';c.style.height=h+'px'}
+function drawCharts(a){
+  const dark=document.documentElement.classList.contains('dark');
+  const grid=dark?'rgba(255,255,255,.07)':'rgba(11,27,58,.07)', tick=dark?'#94a3b8':'#64748b';
+  const now=new Date();const labels=[...Array(6)].map((_,i)=>TH_MONTH[(now.getMonth()-5+i+12)%12]);
+  flowChart&&flowChart.destroy();catChart&&catChart.destroy();
+  fixSize(document.getElementById('serviceChart'));fixSize(document.getElementById('catChart'));
+  flowChart=new Chart(document.getElementById('serviceChart'),{type:'bar',
+    data:{labels,datasets:[
+      {label:'เข้า',data:a.flow.in,backgroundColor:'#10b981',borderRadius:6,maxBarThickness:14},
+      {label:'ออก',data:a.flow.out,backgroundColor:'#ff7a1a',borderRadius:6,maxBarThickness:14}]},
+    options:{responsive:false,maintainAspectRatio:false,animation:{duration:600},
+      plugins:{legend:{labels:{color:tick,font:{family:'Prompt',size:10},boxWidth:10}}},
+      scales:{x:{grid:{display:false},ticks:{color:tick,font:{family:'Prompt',size:10}}},
+              y:{grid:{color:grid},ticks:{color:tick,font:{size:10}},beginAtZero:true}}}});
+  const c=document.getElementById('catChart');
+  if(c) catChart=new Chart(c,{type:'doughnut',
+    data:{labels:Object.keys(a.cat),datasets:[{data:Object.values(a.cat),backgroundColor:['#ff7a1a','#0b1b3a','#3b82f6','#10b981','#94a3b8'],borderWidth:0}]},
+    options:{responsive:false,maintainAspectRatio:false,cutout:'62%',
+      plugins:{legend:{position:'bottom',labels:{color:tick,font:{family:'Prompt',size:10},boxWidth:10}}}}});
+}
+
+/* ================= Shared UI helpers ================= */
+let extraCharts=[];
+function clearCharts(){flowChart&&flowChart.destroy();catChart&&catChart.destroy();flowChart=catChart=null;extraCharts.forEach(c=>c.destroy());extraCharts=[]}
+function theme(){const d=document.documentElement.classList.contains('dark');return{grid:d?'rgba(255,255,255,.07)':'rgba(11,27,58,.07)',tick:d?'#94a3b8':'#64748b'}}
+function mkChart(id,cfg){const c=document.getElementById(id);if(!c)return;fixSize(c);const t=theme();
+  cfg.options=Object.assign({responsive:false,maintainAspectRatio:false,animation:{duration:600},
+    plugins:{legend:{position:cfg.type==='doughnut'?'bottom':'top',labels:{color:t.tick,font:{family:'Prompt',size:10},boxWidth:10}}},
+    scales:cfg.type==='doughnut'?{}:{x:{stacked:!!cfg.stacked,grid:{display:false},ticks:{color:t.tick,font:{family:'Prompt',size:10}}},
+      y:{stacked:!!cfg.stacked,grid:{color:t.grid},ticks:{color:t.tick,font:{size:10}},beginAtZero:true}}},cfg.options||{});
+  if(cfg.type==='doughnut')cfg.options.cutout='62%';
+  extraCharts.push(new Chart(c,cfg))}
+const lastMonths=n=>{const m=new Date().getMonth();return[...Array(n)].map((_,i)=>TH_MONTH[(m-n+1+i+12)%12])};
+const BE=new Date().getFullYear()+543;
+const head=(g,n,ini,acc)=>`<div class="flex items-center justify-between mt-1 mb-3">
+   <div><p class="text-[11px] text-slate-400">${g}</p><p class="font-semibold text-slate-800 dark:text-white">${n}</p></div>
+   <div class="w-9 h-9 rounded-full text-white grid place-items-center text-sm font-bold" style="background:${acc}">${ini}</div></div>`;
+const quick=items=>`<div class="grid grid-cols-4 gap-2 mt-4">${items.map(([e,t])=>`<div class="flex flex-col items-center gap-1"><div class="w-12 h-12 rounded-2xl bg-white dark:bg-slate-800 shadow grid place-items-center text-xl">${e}</div><span class="text-[10px] text-slate-600 dark:text-slate-300 text-center leading-tight">${t}</span></div>`).join('')}</div>`;
+const sec=t=>`<p class="text-xs font-semibold text-slate-700 dark:text-slate-200 mt-4 mb-2">${t}</p>`;
+const tone={red:'bg-rose-100 text-rose-600 dark:bg-rose-900/40',amber:'bg-amber-100 text-amber-600 dark:bg-amber-900/40',green:'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40',blue:'bg-sky-100 text-sky-600 dark:bg-sky-900/40',violet:'bg-violet-100 text-violet-600 dark:bg-violet-900/40'};
+const row=(ic,t,sub,right,tn='blue')=>`<div class="flex items-center gap-3 py-2 border-b border-slate-200/60 dark:border-slate-700/50">
+   <div class="w-8 h-8 rounded-xl grid place-items-center text-sm ${tone[tn]}">${ic}</div>
+   <div class="flex-1 min-w-0"><p class="text-[12px] truncate text-slate-800 dark:text-slate-100">${t}</p><p class="text-[10px] text-slate-400 truncate">${sub}</p></div>
+   <div class="text-[11px] font-semibold text-right">${right}</div></div>`;
+const badge=(t,tn)=>`<span class="px-2 py-0.5 rounded-full text-[9px] ${tone[tn]}">${t}</span>`;
+const tiles=arr=>`<div class="grid grid-cols-2 gap-2 mt-3">${arr.map(([l,v,tn])=>`<div class="rounded-2xl p-3 ${tone[tn]}"><p class="text-[10px] opacity-80">${l}</p><p class="font-bold">${v}</p></div>`).join('')}</div>`;
+const chartBox=(id,t,h=200)=>`<div class="rounded-2xl bg-white dark:bg-slate-900/70 shadow-sm p-3 mt-3"><p class="text-xs font-semibold text-slate-700 dark:text-slate-200">${t}</p>
+   <div class="flex items-center justify-center h-[${h}px]" style="height:${h}px"><canvas id="${id}" class="max-w-full"></canvas></div></div>`;
+const leftWrap=(tag,title,body,acc)=>`<div class="fade-in"><p class="text-[10px] tracking-widest font-semibold" style="color:${acc}">SYNCED · ${tag}</p>
+   <h2 class="text-lg font-bold text-slate-800 dark:text-white">${title}</h2>${body}</div>`;
+const bar=(pct,acc)=>`<div class="h-1.5 rounded-full bg-slate-200 dark:bg-slate-700 overflow-hidden"><div class="h-full rounded-full" style="width:${pct}%;background:${acc}"></div></div>`;
+const ago=h=>{const d=new Date(Date.now()-h*3600e3);return `${beDate(d)} · ${beTime(d)} น.`};
+
+/* ================= Project 2 : IT Service Desk ================= */
+const IT_ACC='#06b6d4';
+const tickets=[['TK-'+BE+'-1042','คอมพิวเตอร์เปิดไม่ติด','ฝ่ายบัญชี ชั้น 3','Critical','red','45 นาที'],
+ ['TK-'+BE+'-1041','VPN เชื่อมต่อไม่ได้','ฝ่ายขาย (WFH)','High','amber','2 ชม.'],
+ ['TK-'+BE+'-1039','ขอติดตั้ง MS Project','ฝ่ายวางแผน','Medium','blue','6 ชม.'],
+ ['TK-'+BE+'-1037','Printer HR กระดาษติด','ฝ่ายบุคคล','Low','green','1 วัน'],
+ ['TK-'+BE+'-1036','รีเซ็ตรหัสผ่าน AD','ฝ่ายผลิต','Medium','blue','4 ชม.'],
+ ['TK-'+BE+'-1033','Wi-Fi ห้องประชุมหลุดบ่อย','อาคาร B','High','amber','3 ชม.']];
+function itRight(){
+  return head('ทีม IT Support','คุณไพโรจน์','P',IT_ACC)+`
+  <div class="rounded-3xl p-4 text-white shadow-xl relative overflow-hidden" style="background:linear-gradient(135deg,#0b1b3a,${IT_ACC})">
+    <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/10"></div>
+    <p class="text-xs opacity-80">Ticket ที่เปิดอยู่</p><p class="text-3xl font-bold">24 <span class="text-sm font-normal opacity-80">รายการ</span></p>
+    <div class="grid grid-cols-3 gap-2 mt-3 text-center text-[10px]">
+      <div class="bg-white/15 rounded-xl py-1.5"><b class="text-sm block">96.4%</b>SLA</div>
+      <div class="bg-white/15 rounded-xl py-1.5"><b class="text-sm block">3</b>Overdue</div>
+      <div class="bg-white/15 rounded-xl py-1.5"><b class="text-sm block">18</b>ปิดวันนี้</div></div>
+    <p class="text-[10px] mt-2 opacity-70">📖 กางจอเพื่อดู Queue + SLA ทั้งหมด</p></div>
+  ${quick([['🛠️','แจ้งซ่อม'],['🔎','ติดตามงาน'],['💻','Asset'],['📚','คลังความรู้'],['🔑','รีเซ็ตรหัส'],['🌐','VPN'],['🖨️','Printer'],['📞','Hotline']])}
+  ${sec('Ticket ล่าสุด')}
+  ${tickets.slice(0,3).map(t=>row('🎫',t[1],t[0]+' · '+t[2],badge(t[3],t[4]),t[4])).join('')}`;
+}
+function itLeft(){
+  const titles={home:'Ticket Queue & SLA',tx:'Ticket ทั้งหมด',scan:'แจ้งซ่อมใหม่',card:'Asset & หมวดปัญหา',more:'รายงานภาพรวม'};
+  return leftWrap('IT SERVICE DESK',titles[state.tab],
+    tiles([['เปิดใหม่วันนี้','12 รายการ','blue'],['ใกล้หลุด SLA','5 รายการ','red']])+
+    chartBox('c1','Ticket รายวัน (7 วันล่าสุด)')+
+    (state.tab==='card'||state.tab==='more'?chartBox('c2','แยกตามหมวดปัญหา',220):'')+
+    sec('คิวงานตาม SLA')+tickets.map(t=>row('🎫',t[1],t[0]+' · '+t[2],`<span class="text-rose-500">⏱ ${t[5]}</span>`,t[4])).join(''),IT_ACC);
+}
+function itCharts(){
+  const days=[...Array(7)].map((_,i)=>{const d=new Date(Date.now()-(6-i)*864e5);return d.getDate()+' '+TH_MONTH[d.getMonth()]});
+  mkChart('c1',{type:'bar',stacked:false,data:{labels:days,datasets:[
+    {label:'เปิดใหม่',data:[14,18,11,20,16,9,12],backgroundColor:IT_ACC,borderRadius:6,maxBarThickness:12},
+    {label:'ปิดแล้ว',data:[12,17,13,18,17,10,18],backgroundColor:'#0b1b3a',borderRadius:6,maxBarThickness:12}]}});
+  mkChart('c2',{type:'doughnut',data:{labels:['Hardware','Software','Network','Account/AD','Printer'],
+    datasets:[{data:[32,24,18,16,10],backgroundColor:[IT_ACC,'#0b1b3a','#ff7a1a','#8b5cf6','#94a3b8'],borderWidth:0}]}});
+}
+
+/* ================= Project 3 : HR 360° ================= */
+const HR_ACC='#8b5cf6';
+function hrRight(){
+  return head('BUGpairoj HR 360°','คุณไพโรจน์ · IT Manager','P',HR_ACC)+`
+  <div class="rounded-3xl p-4 text-white shadow-xl relative overflow-hidden" style="background:linear-gradient(135deg,#2e1065,${HR_ACC})">
+    <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/10"></div>
+    <p class="text-xs opacity-80">${beDate(new Date())}</p>
+    <p class="text-3xl font-bold" id="hrClock">${beTime(new Date())}</p>
+    <p class="text-[11px] opacity-80">เข้างาน 08:12 น. · ตรงเวลา ✅ · สำนักงานใหญ่</p>
+    <button class="mt-3 w-full rounded-xl bg-white text-violet-700 font-semibold text-sm py-2">📍 Check-out</button></div>
+  ${sec('วันลาคงเหลือ')}
+  ${[['ลาพักร้อน',8,10],['ลาป่วย',28,30],['ลากิจ',2,3]].map(([n,a,b])=>`<div class="mb-2"><div class="flex justify-between text-[11px] text-slate-600 dark:text-slate-300"><span>${n}</span><span>${a}/${b} วัน</span></div>${bar(a/b*100,HR_ACC)}</div>`).join('')}
+  ${quick([['📝','ลางาน'],['⏱️','ขอ OT'],['💰','สลิปเงินเดือน'],['⭐','ประเมินผล'],['📅','กะงาน'],['🎓','อบรม'],['🏥','สวัสดิการ'],['📄','หนังสือรับรอง']])}`;
+}
+function hrLeft(){
+  const titles={home:'เวลาทำงาน & ทีมวันนี้',tx:'ประวัติการลงเวลา',scan:'ยื่นคำขอใหม่',card:'การใช้วันลา',more:'สรุป HR ส่วนตัว'};
+  const team=[['สมชาย ใจดี','ลาพักร้อน (ทั้งวัน)','violet'],['วิภา ศรีสุข','ลาป่วย (ครึ่งเช้า)','red'],['ธนพล แก้วมณี','WFH','blue'],['กมลชนก รุ่งเรือง','อบรมภายนอก','amber']];
+  return leftWrap('HR 360°',titles[state.tab],
+    tiles([['ชั่วโมงทำงานเดือนนี้','168 ชม.','violet'],['OT เดือนนี้','12.5 ชม.','amber']])+
+    chartBox('c1','ชั่วโมงทำงาน & OT 6 เดือน')+
+    (state.tab==='card'||state.tab==='more'?chartBox('c2','สัดส่วนการใช้วันลา',220):'')+
+    sec('ทีมที่ไม่อยู่วันนี้')+team.map(t=>row('👤',t[0],t[1],badge('อนุมัติแล้ว','green'),t[2])).join('')+
+    sec('ลงเวลาล่าสุด')+[0,1,2,3].map(i=>row('🕗','เข้า 08:'+(10+i*3)+' · ออก 17:'+(32+i*4),ago(24*(i+1)),'<span class="text-emerald-600">ปกติ</span>','green')).join(''),HR_ACC);
+}
+function hrCharts(){
+  mkChart('c1',{type:'line',data:{labels:lastMonths(6),datasets:[
+    {label:'ชั่วโมงทำงาน',data:[172,165,176,168,170,168],borderColor:HR_ACC,backgroundColor:'rgba(139,92,246,.18)',fill:true,tension:.4,pointRadius:3},
+    {label:'OT',data:[8,14,6,18,10,12.5],borderColor:'#ff7a1a',tension:.4,pointRadius:3}]}});
+  mkChart('c2',{type:'doughnut',data:{labels:['พักร้อน','ป่วย','กิจ','อบรม'],datasets:[{data:[2,2,1,3],backgroundColor:[HR_ACC,'#f43f5e','#f59e0b','#06b6d4'],borderWidth:0}]}});
+}
+
+/* ================= Project 4 : Budget360 ================= */
+const BG_ACC='#10b981';
+function bgRight(){
+  return head('BUGpairoj Budget360','งบประมาณ IT ปี '+BE,'B',BG_ACC)+`
+  <div class="rounded-3xl p-4 text-white shadow-xl relative overflow-hidden" style="background:linear-gradient(135deg,#064e3b,${BG_ACC})">
+    <div class="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/10"></div>
+    <p class="text-xs opacity-80">งบประมาณทั้งปี ${BE}</p><p class="text-2xl font-bold">฿ 12,500,000.00</p>
+    <div class="flex justify-between text-[11px] mt-2 opacity-90"><span>ใช้ไป ฿ 7,842,000</span><span>62.7%</span></div>
+    <div class="h-2 rounded-full bg-white/25 mt-1"><div class="h-full rounded-full bg-white" style="width:62.7%"></div></div>
+    <p class="text-[10px] mt-2 opacity-70">📖 กางจอเพื่อดู Budget vs Actual</p></div>
+  ${quick([['🧾','ขอ PR'],['📦','PO'],['✅','รออนุมัติ'],['📊','รายงาน'],['💼','โครงการ'],['🔄','โอนงบ'],['📁','เอกสาร'],['⚙️','ตั้งค่า']])}
+  ${sec('โครงการหลัก')}
+  ${[['ย้าย Server ขึ้น Proxmox Cluster',78],['FortiGate HA + SD-WAN',55],['ISO 27001:2022 Certification',40]].map(([n,p])=>`<div class="mb-3"><div class="flex justify-between text-[11px] text-slate-600 dark:text-slate-300 mb-1"><span class="truncate pr-2">${n}</span><span>${p}%</span></div>${bar(p,BG_ACC)}</div>`).join('')}`;
+}
+function bgLeft(){
+  const titles={home:'Budget vs Actual',tx:'รายการเบิกจ่าย',scan:'สร้างคำขอ PR',card:'งบตามหมวด',more:'รายงานผู้บริหาร'};
+  const prs=[['PR-'+BE+'-0215','License Microsoft 365 (120 users)','฿ 486,000','amber','รออนุมัติ'],
+   ['PO-'+BE+'-0188','HPE ProLiant DL380 Gen11','฿ 612,500','green','อนุมัติ'],
+   ['PR-'+BE+'-0213','Synology NAS RS2423+','฿ 189,900','amber','รออนุมัติ'],
+   ['PO-'+BE+'-0184','Ruijie Core Switch + SFP','฿ 248,000','green','อนุมัติ'],
+   ['PR-'+BE+'-0209','Wazuh SIEM Onboarding','฿ 95,000','blue','ร่าง']];
+  return leftWrap('BUDGET360',titles[state.tab],
+    tiles([['คงเหลือ','฿ 4,658,000','green'],['รออนุมัติ','฿ 675,900','amber']])+
+    chartBox('c1','งบประมาณ vs ใช้จริง รายไตรมาส (ล้านบาท)')+
+    (state.tab==='card'||state.tab==='more'?chartBox('c2','สัดส่วนงบตามหมวด',220):'')+
+    sec('PR / PO ล่าสุด')+prs.map(t=>row('🧾',t[1],t[0],`${t[2]}<br>${badge(t[4],t[3])}`,t[3])).join(''),BG_ACC);
+}
+function bgCharts(){
+  mkChart('c1',{type:'bar',data:{labels:['ไตรมาส 1','ไตรมาส 2','ไตรมาส 3','ไตรมาส 4'],datasets:[
+    {label:'งบประมาณ',data:[3.2,3.4,3.1,2.8],backgroundColor:'#0b1b3a',borderRadius:6,maxBarThickness:16},
+    {label:'ใช้จริง',data:[2.9,3.1,1.84,0],backgroundColor:BG_ACC,borderRadius:6,maxBarThickness:16}]}});
+  mkChart('c2',{type:'doughnut',data:{labels:['Hardware','Software License','Cloud','Network/Security','บริการ/อบรม'],
+    datasets:[{data:[38,22,14,18,8],backgroundColor:[BG_ACC,'#0b1b3a','#06b6d4','#ff7a1a','#94a3b8'],borderWidth:0}]}});
+}
+
+/* ================= Custom images ================= */
+const ph=t=>`<div class="h-full grid place-items-center text-center text-slate-400 text-sm px-6"><div><div class="text-5xl mb-2">🖼️</div>${t}<br><span class="text-[11px]">เลือกรูปจากกล่องอัปโหลดด้านบน</span></div></div>`;
+
+/* ================= Project registry ================= */
+const PROJECTS={
+  bank:{name:'AURA Bank',icon:'🏦',acc:'#ff7a1a',logo:'AURA',nav:[['home','หน้าหลัก'],['tx','ธุรกรรม'],['scan','สแกน'],['card','บัตร'],['more','อื่นๆ']]},
+  itsd:{name:'IT Service Desk',icon:'🛠️',acc:IT_ACC,logo:'ITSD',nav:[['home','ภาพรวม'],['tx','Ticket','ticket'],['scan','แจ้งซ่อม','plus'],['card','Asset','laptop'],['more','อื่นๆ']],right:itRight,left:itLeft,charts:itCharts},
+  hr:{name:'HR 360°',icon:'👥',acc:HR_ACC,logo:'HR360',nav:[['home','หน้าหลัก'],['tx','ลงเวลา','clock'],['scan','ยื่นคำขอ','plus'],['card','วันลา','doc'],['more','อื่นๆ']],right:hrRight,left:hrLeft,charts:hrCharts},
+  budget:{name:'Budget360',icon:'💰',acc:BG_ACC,logo:'BUDGET360',nav:[['home','ภาพรวม'],['tx','เบิกจ่าย','tx'],['scan','ขอ PR','plus'],['card','หมวดงบ','chart'],['more','อื่นๆ']],right:bgRight,left:bgLeft,charts:bgCharts},
+  custom:{name:'รูปของฉัน',icon:'🖼️',acc:'#ff7a1a',logo:'BUGpairoj',nav:null}
+};
+function renderRight(){
+  const P=PROJECTS[state.proj],iR=document.getElementById('imgR');
+  if(state.proj==='custom'){
+    document.getElementById('rightBody').innerHTML=ph('รูปจอหลัก (ขวา)');
+    iR.classList.toggle('hidden',!customImg.R);if(customImg.R)iR.src=customImg.R;return}
+  iR.classList.add('hidden');
+  if(state.proj==='bank') return bankRight();
+  document.getElementById('rightBody').innerHTML=P.right();
+}
+function renderLeft(){
+  clearCharts();
+  const P=PROJECTS[state.proj],iL=document.getElementById('imgL');
+  if(state.proj==='custom'){
+    document.getElementById('leftBody').innerHTML=ph('รูปจอฝั่งซ้าย');
+    iL.classList.toggle('hidden',!customImg.L);if(customImg.L)iL.src=customImg.L;return}
+  iL.classList.add('hidden');
+  if(state.proj==='bank') return bankLeft();
+  document.getElementById('leftBody').innerHTML=P.left();P.charts();
+}
+function setProject(k){
+  state.proj=k;state.tab='home';const P=PROJECTS[k];
+  document.getElementById('device').style.setProperty('--orange',P.acc);
+  document.getElementById('projTitle').textContent=P.name;
+  document.querySelectorAll('.logo').forEach(l=>l.textContent=P.logo);
+  document.getElementById('uploadBox').classList.toggle('hidden',k!=='custom');
+  document.querySelectorAll('.proj-btn').forEach(b=>b.classList.toggle('active',b.dataset.k===k));
+  renderAll();
+}
+document.getElementById('projBar').insertAdjacentHTML('beforeend',Object.entries(PROJECTS).map(([k,P])=>
+  `<button class="proj-btn posture-btn glass rounded-xl px-3 py-1.5 text-sm ${k==='bank'?'active':''}" data-k="${k}">${P.icon} ${P.name}</button>`).join(''));
+document.querySelectorAll('.proj-btn').forEach(b=>b.onclick=()=>setProject(b.dataset.k));
+['R','L'].forEach(side=>document.getElementById('up'+side).onchange=e=>{
+  const f=e.target.files[0];if(!f||!f.type.startsWith('image/'))return;
+  const r=new FileReader();r.onload=()=>{customImg[side]=r.result;renderAll();renderDots()};r.readAsDataURL(f)});
+setInterval(()=>{const h=document.getElementById('hrClock');if(h)h.textContent=beTime(new Date())},1000);
+
+function renderAll(){renderNav();renderRight();renderLeft()}
+
+/* ================= SHOWREEL (production auto-play) ================= */
+const DESC={bank:'Mobile Banking · กางจอเห็นสมุดบัญชี + เงินเข้า/ออกทันที',itsd:'IT Service Desk · Ticket Queue + SLA แบบ real-time',
+  hr:'HR 360° · ลงเวลา / วันลา / ทีมวันนี้ ในจอเดียว',budget:'Budget360 · Budget vs Actual + PR/PO',custom:'Screenshot โปรเจกต์ของคุณเอง'};
+const POSES=['standing','seated','portrait','open'];
+const SLOT=13000;
+const reel={on:true,idx:0,timers:[],t0:0,raf:null,sway:null,idle:null};
+const reelKeys=()=>Object.keys(PROJECTS).filter(k=>k!=='custom'||customImg.R||customImg.L);
+function hudColor(){document.documentElement.style.setProperty('--hud',PROJECTS[state.proj].acc)}
+function renderDots(){
+  const ks=reelKeys();document.getElementById('dots').innerHTML=ks.map((k,i)=>`<button data-i="${i}" title="${PROJECTS[k].name}" class="${k===state.proj?'on':''}"></button>`).join('');
+  document.querySelectorAll('#dots button').forEach(b=>b.onclick=()=>{goTo(+b.dataset.i);});
+}
+function swapProject(k){
+  const dev=document.getElementById('device');dev.classList.add('swapping');
+  setTimeout(()=>{setProject(k);document.getElementById('projDesc').textContent=DESC[k];hudColor();renderDots();
+    resetScroll();dev.classList.remove('swapping')},350);
+}
+function resetScroll(){['leftBody','rightBody'].forEach(id=>{const e=document.getElementById(id);e&&(e.scrollTop=0)})}
+function smoothScroll(id,dur){
+  const e=document.getElementById(id);if(!e)return;const max=e.scrollHeight-e.clientHeight;if(max<=4)return;
+  const t0=performance.now();
+  const step=t=>{if(!reel.on)return;const p=Math.min(1,(t-t0)/dur);const ease=.5-.5*Math.cos(Math.PI*2*p); // down then back up
+    e.scrollTop=max*ease;if(p<1)requestAnimationFrame(step)};requestAnimationFrame(step);
+}
+function later(ms,fn){reel.timers.push(setTimeout(()=>reel.on&&fn(),ms))}
+function clearTimers(){reel.timers.forEach(clearTimeout);reel.timers=[]}
+function camBase(x,y){reel.base={x,y}}
+function startSway(){
+  cancelAnimationFrame(reel.sway);orbit.classList.add('live');reel.base=reel.base||{x:-12,y:-20};
+  let cx=rx,cy=ry;
+  const loop=t=>{if(!reel.on)return;const b=reel.base;const tx=b.x+Math.cos(t/2600)*3,ty=b.y+Math.sin(t/3200)*9;
+    cx+=(tx-cx)*.03;cy+=(ty-cy)*.03;rx=cx;ry=cy;applyOrbit();reel.sway=requestAnimationFrame(loop)};
+  reel.sway=requestAnimationFrame(loop);
+}
+function playSlot(i){
+  clearTimers();const ks=reelKeys();reel.idx=(i+ks.length)%ks.length;const k=ks[reel.idx];
+  const navs=PROJECTS[k].nav||[];const pose=POSES[reel.idx%POSES.length];
+  reel.t0=performance.now();
+  setPosture('closed');camBase(-6,-14);
+  later(250,()=>swapProject(k));
+  later(1500,()=>smoothScroll('rightBody',3200));
+  later(2600,()=>{setPosture('open');camBase(-12,-24)});
+  later(4200,()=>smoothScroll('leftBody',4200));
+  later(6400,()=>{if(navs[3]){state.tab=navs[3][0];renderNav();renderLeft()}camBase(-16,18)});
+  later(7400,()=>smoothScroll('leftBody',3000));
+  later(9300,()=>{setPosture(pose);camBase(pose==='standing'?-16:-8,pose==='standing'?0:-12)});
+  later(SLOT,()=>playSlot(reel.idx+1));
+}
+function progLoop(){
+  cancelAnimationFrame(reel.raf);
+  const loop=()=>{const p=reel.on?Math.min(1,(performance.now()-reel.t0)/SLOT):null;
+    if(p!==null)document.getElementById('prog').style.width=(p*100)+'%';reel.raf=requestAnimationFrame(loop)};loop();
+}
+function play(){reel.on=true;document.getElementById('playBtn').textContent='⏸';startSway();playSlot(reel.idx)}
+function pause(){reel.on=false;clearTimers();cancelAnimationFrame(reel.sway);orbit.classList.remove('live');document.getElementById('playBtn').textContent='▶'}
+function goTo(i){const ks=reelKeys();reel.idx=(i+ks.length)%ks.length;if(reel.on)playSlot(reel.idx);else{swapProject(ks[reel.idx]);setPosture('open')}}
+document.getElementById('playBtn').onclick=()=>reel.on?pause():play();
+document.getElementById('nextBtn').onclick=()=>goTo(reel.idx+1);
+document.getElementById('prevBtn').onclick=()=>goTo(reel.idx-1);
+document.getElementById('dockBtn').onclick=()=>document.getElementById('dock').classList.toggle('hidden');
+document.getElementById('fsBtn').onclick=()=>{try{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen()}catch(e){}};
+document.addEventListener('keydown',e=>{if(e.key===' '){e.preventDefault();reel.on?pause():play()}
+  if(e.key==='ArrowRight')goTo(reel.idx+1);if(e.key==='ArrowLeft')goTo(reel.idx-1)});
+/* ผู้ใช้จับเครื่อง/กดปุ่มในแผงควบคุม → หยุดชั่วคราว แล้วเล่นต่อเองเมื่อไม่มีการใช้งาน 20 วินาที */
+function userTouch(){if(reel.on)pause();clearTimeout(reel.idle);reel.idle=setTimeout(()=>{if(!reel.on)play()},20000)}
+document.getElementById('dock').addEventListener('click',userTouch);
+
+/* ================= Posture ================= */
+const device=document.getElementById('device');
+function setPosture(p){
+  device.className='device '+p;
+  document.querySelectorAll('.posture-btn[data-p]').forEach(b=>b.classList.toggle('active',b.dataset.p===p));
+}
+document.querySelectorAll('.posture-btn[data-p]').forEach(b=>b.onclick=()=>{stopAuto();setPosture(b.dataset.p)});
+
+let autoT=null;
+function stopAuto(){clearInterval(autoT);autoT=null;document.getElementById('autoBtn').textContent='▶ Auto Fold/Unfold'}
+document.getElementById('autoBtn').onclick=()=>{
+  if(autoT) return stopAuto();
+  const seq=['closed','open','portrait','seated','standing','open'];let i=0;
+  setPosture(seq[i]);autoT=setInterval(()=>{i=(i+1)%seq.length;setPosture(seq[i])},2200);
+  document.getElementById('autoBtn').textContent='⏸ หยุด';
+};
+
+/* ================= Fit to viewport ================= */
+function fit(){
+  const W=window.innerWidth,H=window.innerHeight,top=W<768?110:100,bot=90;
+  const s=Math.max(.3,Math.min(1.15,(W-24)/820,(H-top-bot)/800));
+  const sc=document.getElementById('scaler');sc.style.transform=`translateY(${(top-bot)/2}px) scale(${s})`;
+}
+window.addEventListener('resize',fit);
+
+/* ================= Theme ================= */
+function applyTheme(d){
+  document.documentElement.classList.toggle('dark',d);
+  document.getElementById('themeIcon').textContent=d?'🌙':'☀️';
+  document.getElementById('themeTxt').textContent=d?'Dark':'Light';
+  renderLeft();
+}
+document.getElementById('themeBtn').onclick=()=>applyTheme(!document.documentElement.classList.contains('dark'));
+
+/* ================= 3D Orbit camera ================= */
+const orbit=document.getElementById('orbit'), stage=document.getElementById('stage');
+let rx=-12,ry=-22,zoom=1,drag=null,spin=null;
+function applyOrbit(){
+  orbit.style.transform=`scale(${zoom}) rotateX(${rx}deg) rotateY(${ry}deg)`;
+  document.querySelectorAll('.glare').forEach(g=>g.style.setProperty('--ga',(115+ry*1.5)+'deg'));
+}
+function setView(x,y){stopSpin();orbit.classList.remove('live');rx=x;ry=y;applyOrbit()}
+stage.addEventListener('pointerdown',e=>{
+  if(e.target.closest('.screen')) return;            // ให้กด UI ในจอได้ตามปกติ
+  stopSpin();drag={x:e.clientX,y:e.clientY,rx,ry};orbit.classList.add('live');stage.classList.add('dragging');
+  stage.setPointerCapture(e.pointerId);
+});
+stage.addEventListener('pointermove',e=>{
+  if(!drag) return;
+  ry=drag.ry+(e.clientX-drag.x)*0.35;
+  rx=Math.max(-80,Math.min(80,drag.rx-(e.clientY-drag.y)*0.35));applyOrbit();
+});
+const endDrag=()=>{drag=null;stage.classList.remove('dragging')};
+stage.addEventListener('pointerup',endDrag);stage.addEventListener('pointercancel',endDrag);
+stage.addEventListener('wheel',e=>{
+  if(e.target.closest('.screen')) return;
+  e.preventDefault();zoom=Math.max(.5,Math.min(1.6,zoom-e.deltaY*0.001));applyOrbit();
+},{passive:false});
+document.querySelectorAll('.view-btn[data-v]').forEach(b=>b.onclick=()=>{const [x,y]=b.dataset.v.split(',').map(Number);setView(x,y)});
+function stopSpin(){if(spin){cancelAnimationFrame(spin);spin=null;document.getElementById('spinBtn').textContent='🔄 หมุนรอบตัว'}}
+document.getElementById('spinBtn').onclick=()=>{
+  if(spin) return stopSpin();
+  orbit.classList.add('live');document.getElementById('spinBtn').textContent='⏸ หยุดหมุน';
+  const loop=()=>{ry+=0.4;applyOrbit();spin=requestAnimationFrame(loop)};loop();
+};
+applyOrbit();
+
+/* clock */
+setInterval(()=>document.getElementById('clock').textContent=beTime(new Date()),1000);
+
+renderAll();fit();stage.addEventListener('pointerdown',userTouch);renderDots();hudColor();progLoop();play();
+</script>
+</body>
+</html>
