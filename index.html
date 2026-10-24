@@ -253,7 +253,12 @@ const I={
  chart:'<path d="M4 20V11M10 20V5M16 20v-6M2 20h20"/>',
  plus:'<path d="M12 5v14M5 12h14"/>',
  laptop:'<rect x="4" y="5" width="16" height="11" rx="1"/><path d="M2 19h20"/>',
- doc:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/>'
+ doc:'<path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 12h6M9 16h6"/>',
+ car:'<path d="M5 16l1.5-5a2 2 0 0 1 2-1.5h7a2 2 0 0 1 2 1.5L19 16M4 16h16v3H4zM7 19v1M17 19v1"/>',
+ cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+ flask:'<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3M7 15h10"/>',
+ wrench:'<path d="M14 6a4 4 0 0 0 5 5l-8 8a2 2 0 0 1-3-3z"/>',
+ shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/>'
 };
 const svg=p=>`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${p}</svg>`;
 
@@ -490,6 +495,106 @@ function bgCharts(){
     datasets:[{data:[38,22,14,18,8],backgroundColor:[BG_ACC,'#0b1b3a','#06b6d4','#ff7a1a','#94a3b8'],borderWidth:0}]}});
 }
 
+/* ================= Project 5 : CarBooking ================= */
+const CAR_ACC='#2563eb';
+const cars=[['รถตู้ Toyota Commuter','ฮค 4521 กทม.','ว่าง','green'],['Toyota Fortuner','2กข 889 กทม.','ใช้งาน','amber'],['Honda City','8กด 1203 กทม.','ว่าง','green'],['Isuzu D-Max','บพ 7731 ชลบุรี','ซ่อมบำรุง','red']];
+function carRight(){
+  const d=new Date(Date.now()+864e5);
+  return head('CarBooking · จองรถบริษัท','คุณไพโรจน์','P',CAR_ACC)+`
+  <div class="rounded-3xl p-4 text-white shadow-xl relative overflow-hidden" style="background:linear-gradient(135deg,#0b1b3a,${CAR_ACC})">
+    <div class="absolute -right-6 -bottom-6 text-7xl opacity-20">🚐</div>
+    <p class="text-xs opacity-80">การจองถัดไป · BK-${BE}-0318</p>
+    <p class="text-lg font-bold">รถตู้ Toyota Commuter</p>
+    <p class="text-[11px] opacity-90">📅 ${beDate(d)} · 08:00–17:00 น.</p>
+    <p class="text-[11px] opacity-90">📍 สำนักงานใหญ่ → นิคมฯ อมตะซิตี้ ชลบุรี</p>
+    <div class="flex gap-2 mt-2"><span class="px-2 py-0.5 rounded-full bg-white/20 text-[10px]">✅ อนุมัติแล้ว</span><span class="px-2 py-0.5 rounded-full bg-white/20 text-[10px]">👨‍✈️ คนขับ: สมศักดิ์</span></div></div>
+  ${quick([['🚗','จองรถ'],['📅','ปฏิทิน'],['✅','อนุมัติ'],['🧑‍✈️','คนขับ'],['⛽','น้ำมัน'],['🔧','ซ่อมบำรุง'],['📷','QR รับรถ'],['📊','รายงาน']])}
+  ${sec('สถานะรถวันนี้')}
+  ${cars.slice(0,3).map(c=>row('🚘',c[0],c[1],badge(c[2],c[3]),c[3])).join('')}`;
+}
+function carLeft(){
+  const titles={home:'ปฏิทินการใช้รถ & สถิติ',tx:'การจองของฉัน',scan:'จองรถใหม่',card:'รถทั้งหมด',more:'รายงานการใช้รถ'};
+  const days=['จ','อ','พ','พฤ','ศ','ส','อา'],busy=[3,4,2,5,4,1,0];
+  return leftWrap('CARBOOKING',titles[state.tab],
+    tiles([['รถว่างตอนนี้','7 / 12 คัน','green'],['รออนุมัติ','4 คำขอ','amber']])+
+    `<div class="grid grid-cols-7 gap-1 mt-3 text-center">${days.map((d,i)=>`<div class="rounded-xl py-2 text-[10px] ${busy[i]>3?'bg-blue-600 text-white':'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-200'}">${d}<b class="block text-sm">${busy[i]}</b></div>`).join('')}</div>`+
+    chartBox('c1','จำนวนการจอง & ระยะทาง 6 เดือน')+
+    (state.tab==='card'||state.tab==='more'?chartBox('c2','วัตถุประสงค์การใช้รถ',220):'')+
+    sec('รถทั้งหมด')+cars.map(c=>row('🚘',c[0],c[1],badge(c[2],c[3]),c[3])).join(''),CAR_ACC);
+}
+function carCharts(){
+  mkChart('c1',{type:'bar',data:{labels:lastMonths(6),datasets:[
+    {label:'จำนวนการจอง',data:[42,51,47,58,55,61],backgroundColor:CAR_ACC,borderRadius:6,maxBarThickness:14,yAxisID:'y'},
+    {type:'line',label:'ระยะทาง (x100 กม.)',data:[38,45,40,52,49,57],borderColor:'#ff7a1a',tension:.4,pointRadius:3,yAxisID:'y'}]}});
+  mkChart('c2',{type:'doughnut',data:{labels:['ติดต่อลูกค้า','ส่งของ','ประชุมนอกสถานที่','อบรม','อื่นๆ'],
+    datasets:[{data:[34,26,20,12,8],backgroundColor:[CAR_ACC,'#0b1b3a','#ff7a1a','#10b981','#94a3b8'],borderWidth:0}]}});
+}
+
+/* ================= Project 6 : SIMCMS ================= */
+const SIM_ACC='#6366f1';
+const equips=[['HPLC Agilent 1260','LAB-CH-001','สอบเทียบ','amber','อีก 5 วัน'],['Analytical Balance Mettler','LAB-PH-014','PM','blue','อีก 2 วัน'],
+ ['Spectrophotometer UV-Vis','LAB-CH-007','ซ่อม','red','WO เปิดอยู่'],['Autoclave 50L','LAB-MB-003','ปกติ','green','—'],['pH Meter Thermo','LAB-CH-022','สอบเทียบ','amber','อีก 9 วัน']];
+function simRight(){
+  return head('SIMCMS · เครื่องมือวิทยาศาสตร์','ห้องปฏิบัติการกลาง','S',SIM_ACC)+`
+  <div class="rounded-3xl p-4 text-white shadow-xl relative overflow-hidden" style="background:linear-gradient(135deg,#1e1b4b,${SIM_ACC})">
+    <div class="absolute -right-4 -bottom-6 text-7xl opacity-20">🔬</div>
+    <p class="text-xs opacity-80">ความพร้อมใช้งานเครื่องมือ</p><p class="text-3xl font-bold">97.8%</p>
+    <div class="grid grid-cols-3 gap-2 mt-3 text-center text-[10px]">
+      <div class="bg-white/15 rounded-xl py-1.5"><b class="text-sm block">248</b>เครื่องมือ</div>
+      <div class="bg-white/15 rounded-xl py-1.5"><b class="text-sm block">12</b>ถึงกำหนดสอบเทียบ</div>
+      <div class="bg-white/15 rounded-xl py-1.5"><b class="text-sm block">3</b>กำลังซ่อม</div></div></div>
+  ${quick([['📷','สแกน QR'],['🗓️','แผน PM'],['📏','สอบเทียบ'],['🔧','แจ้งซ่อม'],['🧩','อะไหล่'],['✅','อนุมัติ'],['🏢','Vendor'],['📑','ใบรับรอง']])}
+  ${sec('งานใกล้ถึงกำหนด')}
+  ${equips.slice(0,3).map(e=>row('🔬',e[0],e[1],badge(e[2],e[3]),e[3])).join('')}`;
+}
+function simLeft(){
+  const titles={home:'แผน PM / สอบเทียบ',tx:'ประวัติเครื่องมือ',scan:'สแกนเครื่องมือ',card:'สถานะเครื่องมือ',more:'รายงาน KPI'};
+  return leftWrap('SIMCMS',titles[state.tab],
+    tiles([['PM ตรงแผน','94.2%','violet'],['MTTR เฉลี่ย','6.4 ชม.','blue']])+
+    chartBox('c1','PM & สอบเทียบ ตามแผน vs ทำจริง')+
+    (state.tab==='card'||state.tab==='more'?chartBox('c2','สถานะเครื่องมือทั้งหมด',220):'')+
+    sec('ตารางงานเครื่องมือ')+equips.map(e=>row('🔬',e[0],e[1]+' · '+e[4],badge(e[2],e[3]),e[3])).join(''),SIM_ACC);
+}
+function simCharts(){
+  mkChart('c1',{type:'bar',data:{labels:lastMonths(6),datasets:[
+    {label:'ตามแผน',data:[38,42,40,45,44,48],backgroundColor:'#c7d2fe',borderRadius:6,maxBarThickness:14},
+    {label:'ทำจริง',data:[36,41,38,44,41,46],backgroundColor:SIM_ACC,borderRadius:6,maxBarThickness:14}]}});
+  mkChart('c2',{type:'doughnut',data:{labels:['พร้อมใช้งาน','รอสอบเทียบ','อยู่ระหว่าง PM','ซ่อม','ปลดระวาง'],
+    datasets:[{data:[221,12,8,3,4],backgroundColor:['#10b981','#f59e0b',SIM_ACC,'#f43f5e','#94a3b8'],borderWidth:0}]}});
+}
+
+/* ================= Project 7 : ISO DocControl ================= */
+const ISO_ACC='#c9a227';
+const docs=[['QP-HR-001 ขั้นตอนการสรรหาบุคลากร','Rev.05 · ISO 9001','รออนุมัติ','amber'],['ISMS-POL-002 นโยบายความมั่นคงสารสนเทศ','Rev.03 · ISO 27001','ประกาศใช้','green'],
+ ['WI-PD-014 วิธีปฏิบัติงานเครื่องบรรจุ','Rev.08 · ISO 9001','ทบทวน','blue'],['EP-ENV-003 การจัดการของเสีย','Rev.02 · ISO 14001','ประกาศใช้','green'],['FM-IT-021 แบบฟอร์มขอสิทธิ์ระบบ','Rev.01 · ISO 27001','ร่าง','violet']];
+function isoRight(){
+  return head('ISO DocControl','Document Controller (DCC)','D',ISO_ACC)+`
+  <div class="rounded-3xl p-4 text-white shadow-xl relative overflow-hidden" style="background:linear-gradient(135deg,#0b1b3a,#1e3a5f 60%,${ISO_ACC})">
+    <div class="absolute -right-4 -bottom-6 text-7xl opacity-20">📑</div>
+    <p class="text-xs opacity-80">เอกสารควบคุมทั้งหมด · 3 บริษัท</p><p class="text-3xl font-bold">1,284</p>
+    <div class="flex flex-wrap gap-1 mt-2">${['ISO 9001','ISO 14001','ISO 27001','ISO 45001'].map(t=>`<span class="px-2 py-0.5 rounded-full bg-white/20 text-[10px]">${t}</span>`).join('')}</div>
+    <p class="text-[11px] mt-2 opacity-90">⏳ รออนุมัติ 6 · 📆 ครบรอบทบทวน 14</p></div>
+  ${quick([['📝','ขอแก้ไข (DAR)'],['✅','อนุมัติ'],['🔎','ค้นหาเอกสาร'],['📚','Master List'],['📤','แจกจ่าย'],['🗃️','ยกเลิก/Obsolete'],['🏢','บริษัท/สาขา'],['📊','รายงาน']])}
+  ${sec('เอกสารที่ต้องดำเนินการ')}
+  ${docs.slice(0,3).map(d=>row('📄',d[0],d[1],badge(d[2],d[3]),d[3])).join('')}`;
+}
+function isoLeft(){
+  const titles={home:'Master List & Workflow',tx:'ประวัติ Revision',scan:'ยื่นคำขอ DAR',card:'แยกตามระบบมาตรฐาน',more:'Audit Readiness'};
+  const flow=[['ร่าง',4],['ทบทวน',7],['อนุมัติ',6],['ประกาศใช้',1267]];
+  return leftWrap('ISO DOCCONTROL',titles[state.tab],
+    `<div class="grid grid-cols-4 gap-1 mt-3">${flow.map(([n,v],i)=>`<div class="rounded-xl p-2 text-center ${i===3?'text-white':'bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'}" style="${i===3?'background:'+ISO_ACC:''}"><p class="text-[9px]">${n}</p><b class="text-sm">${v.toLocaleString()}</b></div>`).join('')}</div>`+
+    chartBox('c1','เอกสารออกใหม่ / แก้ไข รายเดือน')+
+    (state.tab==='card'||state.tab==='more'?chartBox('c2','เอกสารตามระบบมาตรฐาน',220):'')+
+    sec('Master List (ล่าสุด)')+docs.map(d=>row('📄',d[0],d[1],badge(d[2],d[3]),d[3])).join(''),ISO_ACC);
+}
+function isoCharts(){
+  mkChart('c1',{type:'bar',stacked:true,data:{labels:lastMonths(6),datasets:[
+    {label:'ออกใหม่',data:[12,9,15,11,8,14],backgroundColor:'#0b1b3a',borderRadius:4,maxBarThickness:16},
+    {label:'แก้ไข Rev.',data:[18,22,16,25,19,21],backgroundColor:ISO_ACC,borderRadius:4,maxBarThickness:16}]}});
+  mkChart('c2',{type:'doughnut',data:{labels:['ISO 9001','ISO 14001','ISO 27001','ISO 45001'],
+    datasets:[{data:[612,214,298,160],backgroundColor:['#0b1b3a',ISO_ACC,'#06b6d4','#10b981'],borderWidth:0}]}});
+}
+
 /* ================= Custom images ================= */
 const ph=t=>`<div class="h-full grid place-items-center text-center text-slate-400 text-sm px-6"><div><div class="text-5xl mb-2">🖼️</div>${t}<br><span class="text-[11px]">เลือกรูปจากกล่องอัปโหลดด้านบน</span></div></div>`;
 
@@ -499,6 +604,9 @@ const PROJECTS={
   itsd:{name:'IT Service Desk',icon:'🛠️',acc:IT_ACC,logo:'ITSD',nav:[['home','ภาพรวม'],['tx','Ticket','ticket'],['scan','แจ้งซ่อม','plus'],['card','Asset','laptop'],['more','อื่นๆ']],right:itRight,left:itLeft,charts:itCharts},
   hr:{name:'HR 360°',icon:'👥',acc:HR_ACC,logo:'HR360',nav:[['home','หน้าหลัก'],['tx','ลงเวลา','clock'],['scan','ยื่นคำขอ','plus'],['card','วันลา','doc'],['more','อื่นๆ']],right:hrRight,left:hrLeft,charts:hrCharts},
   budget:{name:'Budget360',icon:'💰',acc:BG_ACC,logo:'BUDGET360',nav:[['home','ภาพรวม'],['tx','เบิกจ่าย','tx'],['scan','ขอ PR','plus'],['card','หมวดงบ','chart'],['more','อื่นๆ']],right:bgRight,left:bgLeft,charts:bgCharts},
+  car:{name:'CarBooking',icon:'🚐',acc:CAR_ACC,logo:'CARBOOKING',nav:[['home','หน้าหลัก'],['tx','การจอง','cal'],['scan','จองรถ','plus'],['card','รถ','car'],['more','อื่นๆ']],right:carRight,left:carLeft,charts:carCharts},
+  simcms:{name:'SIMCMS',icon:'🔬',acc:SIM_ACC,logo:'SIMCMS',nav:[['home','ภาพรวม'],['tx','ประวัติ','clock'],['scan','สแกน QR','scan'],['card','เครื่องมือ','flask'],['more','อื่นๆ']],right:simRight,left:simLeft,charts:simCharts},
+  iso:{name:'ISO DocControl',icon:'📑',acc:ISO_ACC,logo:'ISO DCC',nav:[['home','ภาพรวม'],['tx','Revision','doc'],['scan','ขอ DAR','plus'],['card','มาตรฐาน','shield'],['more','อื่นๆ']],right:isoRight,left:isoLeft,charts:isoCharts},
   custom:{name:'รูปของฉัน',icon:'🖼️',acc:'#ff7a1a',logo:'BUGpairoj',nav:null}
 };
 function renderRight(){
@@ -528,6 +636,8 @@ function setProject(k){
   document.getElementById('uploadBox').classList.toggle('hidden',k!=='custom');
   document.querySelectorAll('.proj-btn').forEach(b=>b.classList.toggle('active',b.dataset.k===k));
   renderAll();
+  document.documentElement.style.setProperty('--hud',P.acc);
+  if(typeof DESC!=='undefined'){document.getElementById('projDesc').textContent=DESC[k];const i=reelKeys().indexOf(k);if(i>=0)reel.idx=i;renderDots()}
 }
 document.getElementById('projBar').insertAdjacentHTML('beforeend',Object.entries(PROJECTS).map(([k,P])=>
   `<button class="proj-btn posture-btn glass rounded-xl px-3 py-1.5 text-sm ${k==='bank'?'active':''}" data-k="${k}">${P.icon} ${P.name}</button>`).join(''));
@@ -541,7 +651,8 @@ function renderAll(){renderNav();renderRight();renderLeft()}
 
 /* ================= SHOWREEL (production auto-play) ================= */
 const DESC={bank:'Mobile Banking · กางจอเห็นสมุดบัญชี + เงินเข้า/ออกทันที',itsd:'IT Service Desk · Ticket Queue + SLA แบบ real-time',
-  hr:'HR 360° · ลงเวลา / วันลา / ทีมวันนี้ ในจอเดียว',budget:'Budget360 · Budget vs Actual + PR/PO',custom:'Screenshot โปรเจกต์ของคุณเอง'};
+  hr:'HR 360° · ลงเวลา / วันลา / ทีมวันนี้ ในจอเดียว',budget:'Budget360 · Budget vs Actual + PR/PO',
+  car:'CarBooking · จองรถบริษัท ปฏิทิน + สถานะรถ + อนุมัติ',simcms:'SIMCMS · PM / สอบเทียบ / ซ่อม เครื่องมือวิทยาศาสตร์',iso:'ISO DocControl · Master List + Workflow อนุมัติเอกสารหลายมาตรฐาน',custom:'Screenshot โปรเจกต์ของคุณเอง'};
 const POSES=['standing','seated','portrait','open'];
 const SLOT=13000;
 const reel={on:true,idx:0,timers:[],t0:0,raf:null,sway:null,idle:null};
